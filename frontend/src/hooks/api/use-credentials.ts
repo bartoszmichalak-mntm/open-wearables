@@ -69,11 +69,3 @@ export function useDeleteApiKey() {
     },
   });
 }
-
-// Get widget embed code (not a query, just a utility)
-export function useWidgetEmbedCode() {
-  return {
-    getEmbedCode: (apiKey: string, userId?: string) =>
-      credentialsService.getWidgetEmbedCode(apiKey, userId),
-  };
-}

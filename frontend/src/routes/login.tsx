@@ -2,15 +2,7 @@ import { createFileRoute, redirect, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { isAuthenticated } from '@/lib/auth/session';
-import {
-  Activity,
-  ArrowRight,
-  Mail,
-  Lock,
-  Check,
-  Github,
-  Chrome,
-} from 'lucide-react';
+import { Activity, ArrowRight, Mail, Lock } from 'lucide-react';
 import { CodePreviewCard } from '@/components/login/code-preview-card';
 
 export const Route = createFileRoute('/login')({
@@ -26,7 +18,6 @@ function LoginPage() {
   const { login, isLoggingIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberDevice, setRememberDevice] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,23 +112,6 @@ function LoginPage() {
                 </div>
               </div>
 
-              {/* Custom Checkbox */}
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <div className="relative flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={rememberDevice}
-                    onChange={(e) => setRememberDevice(e.target.checked)}
-                    className="peer sr-only"
-                  />
-                  <div className="w-4 h-4 border border-zinc-700 rounded bg-zinc-900 peer-checked:bg-white peer-checked:border-white transition-all" />
-                  <Check className="absolute w-3 h-3 text-black opacity-0 peer-checked:opacity-100 top-0.5 left-0.5 pointer-events-none transition-opacity" />
-                </div>
-                <span className="text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors">
-                  Remember device for 30 days
-                </span>
-              </label>
-
               {/* Submit Button */}
               <button
                 type="submit"
@@ -172,36 +146,6 @@ function LoginPage() {
                 )}
               </button>
             </form>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-zinc-800" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-black px-2 text-zinc-600">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            {/* Social Login Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-white text-xs font-medium h-9 rounded-md transition-all"
-              >
-                <Github className="w-3.5 h-3.5" />
-                GitHub
-              </button>
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-white text-xs font-medium h-9 rounded-md transition-all"
-              >
-                <Chrome className="w-3.5 h-3.5" />
-                Google
-              </button>
-            </div>
           </div>
 
           {/* Footer Links */}

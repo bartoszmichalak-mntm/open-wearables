@@ -24,21 +24,21 @@ export interface UserRead {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
-  client_user_id: string;
+  external_user_id: string | null;
 }
 
 export interface UserCreate {
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;
-  client_user_id: string;
+  external_user_id?: string | null;
 }
 
 export interface UserUpdate {
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;
-  client_user_id?: string | null;
+  external_user_id?: string | null;
 }
 
 export interface LoginRequest {
@@ -202,29 +202,14 @@ export interface ActivitySummary {
 }
 
 export interface ApiKey {
-  id: string;
+  id: string; // This is the actual API key value (sk-...)
   name: string;
-  key: string;
-  type: 'live' | 'test' | 'widget';
-  status: 'active' | 'revoked';
-  lastUsed: string | null;
-  createdAt: string;
-  expiresAt: string | null;
-}
-
-export interface ApiKeyRead {
-  id: string;
-  name: string;
-  key: string;
-  type: 'developer' | 'widget';
-  status: 'active' | 'revoked';
-  lastUsed?: string;
-  createdAt: string;
+  created_by: string;
+  created_at: string;
 }
 
 export interface ApiKeyCreate {
   name: string;
-  type: 'live' | 'test' | 'widget';
 }
 
 export interface Automation {
@@ -397,16 +382,35 @@ export interface WorkoutSummary {
   total_calories: number;
 }
 
+/**
+ * Workout response from backend
+ * GET /api/v1/users/{user_id}/workouts
+ */
 export interface WorkoutResponse {
   id: string;
   type: string | null;
-  startDate: string;
-  endDate: string;
-  duration: number;
-  durationUnit: string;
-  sourceName: string | null;
+  duration_seconds: string;
+  source_name: string;
+  start_datetime: string;
+  end_datetime: string;
+  statistics: WorkoutStatisticResponse[];
+}
+
+/**
+ * Workout statistic response from backend
+ * GET /api/v1/users/{user_id}/heart-rate
+ */
+export interface WorkoutStatisticResponse {
+  id: string;
   user_id: string;
-  summary: WorkoutSummary;
+  workout_id: string;
+  type: string;
+  start_datetime: string;
+  end_datetime: string;
+  min: number | null;
+  max: number | null;
+  avg: number | null;
+  unit: string;
 }
 
 export interface WorkoutMeta {
