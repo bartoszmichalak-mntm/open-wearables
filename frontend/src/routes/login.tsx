@@ -2,7 +2,8 @@ import { createFileRoute, redirect, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { isAuthenticated } from '@/lib/auth/session';
-import { Activity, ArrowRight, Mail, Lock } from 'lucide-react';
+import { ArrowRight, Mail, Lock } from 'lucide-react';
+import logotype from '@/logotype.svg';
 import { CodePreviewCard } from '@/components/login/code-preview-card';
 
 export const Route = createFileRoute('/login')({
@@ -35,14 +36,7 @@ function LoginPage() {
         {/* Left Section: Login Form */}
         <div className="flex flex-col justify-between p-8 sm:p-12 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-black/90">
           {/* Header/Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-white rounded flex items-center justify-center">
-              <Activity className="text-black w-4 h-4" />
-            </div>
-            <span className="text-sm font-medium text-white tracking-tight uppercase">
-              Open Wearables
-            </span>
-          </div>
+          <img src={logotype} alt="Open Wearables" className="h-30" />
 
           {/* Main Form Container */}
           <div className="w-full max-w-sm mx-auto space-y-6 my-auto py-8">
