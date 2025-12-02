@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Link as LinkIcon,
@@ -8,10 +8,14 @@ import {
   Dumbbell,
   Trash2,
   Check,
+  Pencil,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHeartRate, useWorkouts } from '@/hooks/api/use-health';
-import { useUsers, useDeleteUser } from '@/hooks/api/use-users';
+import { useUsers, useDeleteUser, useUpdateUser } from '@/hooks/api/use-users';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { formatDate, formatDuration, truncateId } from '@/lib/utils/format';
 import { calculateHeartRateStats } from '@/lib/utils/health';
 import {
@@ -41,10 +45,29 @@ function UserDetailPage() {
     sort_order: 'desc',
   });
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
+  const { mutate: updateUser, isPending: isUpdating } = useUpdateUser();
 
   const user = users?.find((u) => u.id === userId);
   const heartRateStats = calculateHeartRateStats(heartRateData);
   const [copied, setCopied] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    external_user_id: '',
+  });
+
+  useEffect(() => {
+    if (user) {
+      setEditForm({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        email: user.email || '',
+        external_user_id: user.external_user_id || '',
+      });
+    }
+  }, [user]);
 
   const handleCopyPairLink = async () => {
     const pairLink = `${window.location.origin}/users/${userId}/pair`;
@@ -60,6 +83,25 @@ function UserDetailPage() {
         navigate({ to: '/users' });
       },
     });
+  };
+
+  const handleEditSubmit = () => {
+    updateUser(
+      {
+        id: userId,
+        data: {
+          first_name: editForm.first_name || null,
+          last_name: editForm.last_name || null,
+          email: editForm.email || null,
+          external_user_id: editForm.external_user_id || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          setIsEditDialogOpen(false);
+        },
+      }
+    );
   };
 
   if (!usersLoading && !user) {
@@ -159,8 +201,15 @@ function UserDetailPage() {
 
       {/* User Information */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-800">
+        <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
           <h2 className="text-sm font-medium text-white">User Information</h2>
+          <button
+            onClick={() => setIsEditDialogOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </button>
         </div>
         <div className="p-6">
           {usersLoading ? (
@@ -345,6 +394,110 @@ function UserDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Edit User Dialog */}
+      {isEditDialogOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md shadow-2xl">
+            <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-medium text-white">Edit User</h2>
+                <p className="text-sm text-zinc-500 mt-1">
+                  Update user information
+                </p>
+              </div>
+              <button
+                onClick={() => setIsEditDialogOpen(false)}
+                className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="first_name" className="text-zinc-300">
+                    First Name
+                  </Label>
+                  <Input
+                    id="first_name"
+                    value={editForm.first_name}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, first_name: e.target.value })
+                    }
+                    placeholder="John"
+                    className="bg-zinc-800 border-zinc-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="last_name" className="text-zinc-300">
+                    Last Name
+                  </Label>
+                  <Input
+                    id="last_name"
+                    value={editForm.last_name}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, last_name: e.target.value })
+                    }
+                    placeholder="Doe"
+                    className="bg-zinc-800 border-zinc-700"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-zinc-300">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
+                  placeholder="john@example.com"
+                  className="bg-zinc-800 border-zinc-700"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="external_user_id" className="text-zinc-300">
+                  External User ID
+                </Label>
+                <Input
+                  id="external_user_id"
+                  value={editForm.external_user_id}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      external_user_id: e.target.value,
+                    })
+                  }
+                  placeholder="external-123"
+                  className="bg-zinc-800 border-zinc-700"
+                />
+                <p className="text-xs text-zinc-500">
+                  Optional identifier from your system
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+              <button
+                onClick={() => setIsEditDialogOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSubmit}
+                disabled={isUpdating}
+                className="px-4 py-2 text-sm font-medium bg-white text-black rounded-md hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUpdating ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
