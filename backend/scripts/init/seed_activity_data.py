@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Seed activity data: create 10 users with comprehensive health data using Faker."""
+"""Seed activity data: create users with comprehensive health data using Faker."""
 
+import argparse
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
@@ -227,8 +228,8 @@ def generate_time_series_samples(
     return samples
 
 
-def seed_activity_data() -> None:
-    """Create 10 users with comprehensive health data."""
+def seed_activity_data(num_users: int = 10) -> None:
+    """Create users with comprehensive health data."""
     with SessionLocal() as db:
         users_created = 0
         workouts_created = 0
@@ -239,7 +240,7 @@ def seed_activity_data() -> None:
         personal_record_repo = CrudRepository(PersonalRecord)
         event_detail_repo = EventRecordDetailRepository(EventRecordDetail)
 
-        for user_num in range(1, 11):
+        for user_num in range(1, num_users + 1):
             # Create user
             user_data = UserCreate(
                 first_name=fake.first_name(),
@@ -250,7 +251,7 @@ def seed_activity_data() -> None:
 
             user = user_service.create(db, user_data)
             users_created += 1
-            print(f"✓ Created user {user_num}/10: {user.email} (ID: {user.id})")
+            print(f"✓ Created user {user_num}/{num_users}: {user.email} (ID: {user.id})")
 
             # Create personal record (one per user)
             personal_record_data = generate_personal_record(user.id, fake)
@@ -303,4 +304,13 @@ def seed_activity_data() -> None:
 
 
 if __name__ == "__main__":
-    seed_activity_data()
+    parser = argparse.ArgumentParser(description="Seed activity data with users and health data")
+    parser.add_argument(
+        "--users",
+        "-u",
+        type=int,
+        default=1,
+        help="Number of users to generate (default: 10)",
+    )
+    args = parser.parse_args()
+    seed_activity_data(num_users=args.users)
