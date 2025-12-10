@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from xml.etree import ElementTree as ET
 
 from app.config import settings
+from app.constants.series_types import get_series_type_from_apple_metric_type
 from app.constants.workout_types.apple import get_unified_workout_type
 from app.schemas import (
     EventRecordCreate,
@@ -14,6 +15,8 @@ from app.schemas import (
     EventRecordMetrics,
     HeartRateSampleCreate,
     StepSampleCreate,
+    TimeSeriesSampleCreate,
+    SeriesType,
 )
 
 
@@ -68,32 +71,30 @@ class XMLService:
         self,
         document: dict[str, Any],
         user_id: UUID,
-    ) -> HeartRateSampleCreate | StepSampleCreate | None:
+    ) -> HeartRateSampleCreate | StepSampleCreate | TimeSeriesSampleCreate | None:
         document = self._parse_date_fields(document)
 
         metric_type = document.get("type", "")
+        series_type = get_series_type_from_apple_metric_type(metric_type)
         value = Decimal(document["value"])
 
-        if "HKQuantityTypeIdentifierHeartRate" in metric_type:
-            return HeartRateSampleCreate(
-                id=uuid4(),
-                user_id=user_id,
-                provider_id=None,
-                device_id=document.get("device"),
-                recorded_at=document["startDate"],
-                value=value,
-            )
-        if "HKQuantityTypeIdentifierStepCount" in metric_type:
-            return StepSampleCreate(
-                id=uuid4(),
-                user_id=user_id,
-                provider_id=None,
-                device_id=document.get("device"),
-                recorded_at=document["startDate"],
-                value=value,
-            )
+        # Build common fields as a dictionary to avoid creating invalid objects
+        sample_data = {
+            "id": uuid4(),
+            "user_id": user_id,
+            "provider_id": None,
+            "device_id": document.get("device", "")[:100],
+            "recorded_at": document["startDate"],
+            "value": value,
+        }
 
-        return None
+        match series_type:
+            case SeriesType.heart_rate:
+                return HeartRateSampleCreate(**sample_data)
+            case SeriesType.steps:
+                return StepSampleCreate(**sample_data)
+            case _:
+                return TimeSeriesSampleCreate(series_type=series_type, **sample_data)
 
     def _create_workout(
         self,
@@ -114,7 +115,7 @@ class XMLService:
             category="workout",
             type=workout_type.value,
             source_name=document["sourceName"],
-            device_id=document.get("device"),
+            device_id=document.get("device", "")[:100],
             duration_seconds=duration_seconds,
             start_datetime=document["startDate"],
             end_datetime=document["endDate"],
@@ -180,8 +181,7 @@ class XMLService:
         user_id: str,
     ) -> Generator[
         tuple[
-            list[HeartRateSampleCreate],
-            list[StepSampleCreate],
+            list[TimeSeriesSampleCreate],
             list[tuple[EventRecordCreate, EventRecordDetailCreate]],
         ],
         None,
@@ -194,43 +194,37 @@ class XMLService:
         Args:
             user_id: User ID to associate with parsed records
         """
-        heart_rate_records: list[HeartRateSampleCreate] = []
-        step_records: list[StepSampleCreate] = []
+        time_series_records: list[TimeSeriesSampleCreate] = []
         workouts: list[tuple[EventRecordCreate, EventRecordDetailCreate]] = []
         uuid_user = UUID(user_id)
 
         for event, elem in ET.iterparse(self.xml_path, events=("end",)):
             if elem.tag == "Record" and event == "end":
-                if len(workouts) + len(heart_rate_records) + len(step_records) >= self.chunk_size:
+                if len(workouts) + len(time_series_records) >= self.chunk_size:
                     self.log.info(
-                        "Lengths of records, workouts: %s, %s, %s",
-                        len(heart_rate_records),
-                        len(step_records),
+                        "Lengths of time series records, workouts: %s, %s",
+                        len(time_series_records),
                         len(workouts),
                     )
-                    yield heart_rate_records, step_records, workouts
-                    heart_rate_records = []
-                    step_records = []
+                    yield time_series_records, workouts
+                    time_series_records = []
                     workouts = []
+
                 record: dict[str, Any] = elem.attrib.copy()
                 record_create = self._create_record(record, uuid_user)
-                if isinstance(record_create, HeartRateSampleCreate):
-                    heart_rate_records.append(record_create)
-                elif isinstance(record_create, StepSampleCreate):
-                    step_records.append(record_create)
+                if record_create is not None:
+                    time_series_records.append(record_create)
                 elem.clear()
 
             elif elem.tag == "Workout" and event == "end":
-                if len(workouts) + len(heart_rate_records) + len(step_records) >= self.chunk_size:
+                if len(workouts) + len(time_series_records) >= self.chunk_size:
                     self.log.info(
-                        "Lengths of records, workouts: %s, %s, %s",
-                        len(heart_rate_records),
-                        len(step_records),
+                        "Lengths of time series records, workouts: %s, %s",
+                        len(time_series_records),
                         len(workouts),
                     )
-                    yield heart_rate_records, step_records, workouts
-                    heart_rate_records = []
-                    step_records = []
+                    yield time_series_records, workouts
+                    time_series_records = []
                     workouts = []
                 workout: dict[str, Any] = elem.attrib.copy()
                 metrics = self._init_metrics()
@@ -245,9 +239,8 @@ class XMLService:
 
         # yield remaining records and workout pairs
         self.log.info(
-            "Lengths of records, workouts: %s, %s, %s",
-            len(heart_rate_records),
-            len(step_records),
+            "Lengths of time series records, workouts: %s, %s",
+            len(time_series_records),
             len(workouts),
         )
-        yield heart_rate_records, step_records, workouts
+        yield time_series_records, workouts
