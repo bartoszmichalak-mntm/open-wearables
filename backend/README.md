@@ -68,6 +68,9 @@ uv sync --group code-quality
 # Start services
 docker compose up -d
 
+# For development with hot-reloading, use the `--watch` flag:
+docker compose watch
+
 # Run migrations
 docker compose exec app uv run alembic upgrade head
 ```
